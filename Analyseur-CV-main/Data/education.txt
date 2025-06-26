@@ -34,3 +34,6 @@ Licence
 Concepteur
 Professionnel
 Professionnelles
+Dut
+deug
+doctorat
