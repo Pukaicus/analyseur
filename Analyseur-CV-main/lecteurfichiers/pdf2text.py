@@ -24,40 +24,52 @@ def get_Text(filePath):
         text += '\n' + page
     return text
 
-# --- Extraction formations ---
+
 def extraire_formations(texte):
     lignes = [l.strip() for l in texte.split('\n') if l.strip()]
     formations = []
-    date_pattern = re.compile(r'\b(19|20)\d{2}(?:[-/–]\d{2,4})?\b')
+    date_pattern = re.compile(r'\b(19|20)\d{2}(?:[-/–]\s*(?:19|20)?\d{2})?\b')
 
     i = 0
     while i < len(lignes):
         ligne = lignes[i]
         date_match = date_pattern.search(ligne)
+
         if date_match:
             date = date_match.group(0)
-            ecole = "Inconnu"
-            diplome = ""
 
-            if i + 1 < len(lignes) and lignes[i + 1]:
-                ecole = lignes[i + 1]
+            if len(ligne.split()) > 4:  # ligne assez longue
+                contenu = ligne.replace(date, '').strip()
+                contenu = re.sub(r'^[•:\-–\(\)]*', '', contenu)
 
-            if i + 2 < len(lignes) and lignes[i + 2]:
-                diplome = lignes[i + 2]
+                if '-' in contenu:
+                    parts = contenu.split('-')
+                    diplome = parts[0].strip()
+                    ecole = '-'.join(parts[1:]).strip()
+                else:
+                    diplome = contenu.strip()
+                    ecole = "Inconnu"
+
+                formations.append({
+                    "date": date,
+                    "diplome": ecole if ecole else "Inconnu",    # inversion ici
+                    "ecole": diplome if diplome else "Inconnu"   # inversion ici
+                })
+                i += 1
+
             else:
-                diplome = ""
+                diplome = lignes[i + 1].strip() if i + 1 < len(lignes) else "Inconnu"
+                ecole = lignes[i + 2].strip() if i + 2 < len(lignes) else "Inconnu"
 
-            diplome = re.sub(r'[:\-–•()]', '', diplome).strip()
-            ecole = ecole.strip()
-
-            formations.append({
-                "date": date,
-                "ecole": ecole if ecole else "Inconnu",
-                "diplome": diplome if diplome else "Inconnu"
-            })
-            i += 3
+                formations.append({
+                    "date": date,
+                    "diplome": ecole if ecole else "Inconnu",    # inversion ici
+                    "ecole": diplome if diplome else "Inconnu"   # inversion ici
+                })
+                i += 3
         else:
             i += 1
+
     return formations
 
 # --- Regroupe les lignes d'une même expérience ---
@@ -92,6 +104,7 @@ def analyser_bloc_experience(bloc):
     date_pattern = re.compile(r'\b(19|20)\d{2}(?:[-/–]\d{2,4})?\b')
     date = "Inconnu"
     entreprise = "Inconnu"
+    poste = "Inconnu"
     missions = []
 
     # Trouver date dans les 2 premières lignes
@@ -101,17 +114,18 @@ def analyser_bloc_experience(bloc):
             date = m.group(0)
             break
 
-    # Trouver entreprise comme première ligne après date
+    # Extraire ligne contenant le poste et entreprise (1ère ligne contenant un tiret)
     for ligne in bloc:
-        if date_pattern.search(ligne):
-            continue
-        entreprise = ligne
-        break
+        if '-' in ligne:
+            parties = ligne.split('-')
+            poste = parties[0].strip()
+            entreprise = '-'.join(parties[1:]).strip()
+            break
 
     # Le reste = missions / description
     debut_missions = False
     for ligne in bloc:
-        if ligne == entreprise:
+        if poste in ligne or entreprise in ligne:
             debut_missions = True
             continue
         if debut_missions and ligne:
@@ -121,9 +135,11 @@ def analyser_bloc_experience(bloc):
 
     return {
         "date": date,
-        "entreprise": entreprise,
+        "poste": poste if poste else "Inconnu",
+        "entreprise": entreprise if entreprise else "Inconnu",
         "description": description if description else "Inconnu"
     }
+
 
 def extraire_experiences(texte):
     lignes = [l.strip() for l in texte.split('\n') if l.strip()]

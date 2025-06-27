@@ -28,10 +28,10 @@ def generer_xml(nom, numero_telephone, email, education, competences, experience
     # Formations
     formations = ET.SubElement(root, "Formations")
     for formation in education:
-        formation_el = ET.SubElement(formations, "Formation")
-        ET.SubElement(formation_el, "Date").text = formation.get("date", "Inconnu")
-        ET.SubElement(formation_el, "Ecole").text = formation.get("ecole", "Inconnu")
-        ET.SubElement(formation_el, "Diplome").text = formation.get("diplome", "Inconnu")
+       formation_el = ET.SubElement(formations, "Formation")
+       ET.SubElement(formation_el, "Date").text = formation.get("date", "Inconnu")
+       ET.SubElement(formation_el, "Diplome").text = formation.get("diplome", "Inconnu")  # ici diplome
+       ET.SubElement(formation_el, "Ecole").text = formation.get("ecole", "Inconnu")      # ici ecole
 
     # Compétences
     competences_xml = ET.SubElement(root, "Competences")
