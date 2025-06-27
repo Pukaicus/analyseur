@@ -1,101 +1,86 @@
-import re
+import re 
 import spacy
 
 def extraire_education(texte_cv):
     nlp = spacy.load('fr_core_news_lg')
 
+    # Charger les mots clés de diplômes depuis fichier externe
     with open('C:/Users/Lukas/Downloads/Analyseur-CV-main/Analyseur-CV-main/Data/education.txt', 'r', encoding='utf-8') as f:
         mots_cles_education = [mot.strip().lower() for mot in f.readlines() if mot.strip()]
 
     lignes = [l.strip() for l in texte_cv.split('\n') if l.strip()]
-    education = []
 
-    date_pattern = re.compile(r'\b(19|20)\d{2}(?:\s*[-/–]?\s*(?:19|20)?\d{2})?\b')
+    date_pattern = re.compile(r'\b(19|20)\d{2}(?:\s*[-/\u2013]\s*(?:19|20)?\d{2})?\b')
 
     mots_ecole = [
         'école', 'université', 'lycée', 'institut', 'centre', 'fac', 'collège',
-        'formation', 'scolaire', 'cnam', 'fst', 'greta', 'cned', 'à distance', 'eni'
+        'formation', 'cnam', 'fst', 'greta', 'cned', 'eni', 'campus'
     ]
 
     mots_interdits = [
-        'alternance', 'recherche', 'stage', 'expérience', 'langue', 'certification',
-        'projet', 'compétence', 'durant', 'obtenues', 'obtenus', 'freelance', 'contact',
-        'atelier', 'assistant', 'surveillance', 'facteur', 'laposte',
-        'service informatique', 'enseignant', 'enseignante'
+        'stage', 'expérience', 'freelance', 'support', 'logiciel', 'application', 'développement',
+        'windev', 'webdev', 'dreamweaver', 'html', 'php', 'ah.com', 'hfsql', 'facturation', 'gestion',
+        'fonction', 'fonctionnalité', 'ms-dos', 'linux', 'windows', 'support', 'comptabilité',
+        'journal caisse', 'rapport', 'formateur', 'guide', 'tunisienne', 'modules', 'missions',
+        'boutiques', 'magasins', 'stations', 'automobiles', 'dossiers maritimes', 'paie', 'import-export',
+        'musculation', 'calisthenics', 'course', 'facteur', 'professeur'
     ]
 
-    i = 0
-    while i < len(lignes):
-        bloc = ' '.join(lignes[i:i+3])
-        bloc_lower = bloc.lower()
+    def est_ligne_vide_ou_vague(texte):
+        mots_vides = {'formation', 'formations', 'cours', 'stage', 'stages', 'séminaire', 'atelier', '-', '•', '—'}
+        return texte.strip().lower() in mots_vides
 
-        if not any(m in bloc_lower for m in mots_cles_education):
-            i += 1
+    def nettoyer_texte(texte):
+        texte = re.sub(r'^[•\-\:\s]+', '', texte)
+        texte = re.sub(r'\s{2,}', ' ', texte)
+        return texte.strip()
+
+    education = []
+
+    for ligne_brute in lignes:
+        ligne = nettoyer_texte(ligne_brute)
+        ligne_lower = ligne.lower()
+
+        if est_ligne_vide_ou_vague(ligne) or any(m in ligne_lower for m in mots_interdits):
             continue
 
-        if any(mot_interdit in bloc_lower for mot_interdit in mots_interdits):
-            i += 1
-            continue
+        # Extraction date
+        date_match = date_pattern.search(ligne)
+        date = date_match.group(0) if date_match else "Inconnu"
 
-        date_match = date_pattern.search(bloc)
-        date = date_match.group(0) if date_match else ''
-
-        # Recherche de l’école
-        ecole = ''
-        for mot in mots_ecole:
-            for j in range(3):
-                if i + j < len(lignes):
-                    ligne_candidate = lignes[i + j]
-                    if mot in ligne_candidate.lower():
-                        ecole = ligne_candidate.strip()
-                        break
-            if ecole:
+        # Extraction école : entité ORG spaCy prioritaire
+        doc = nlp(ligne)
+        ecole = "Inconnu"
+        for ent in doc.ents:
+            if ent.label_ == "ORG":
+                ecole = ent.text.strip()
                 break
 
-        # Nettoyage de l'école si polluée
-        if ecole:
-            ecole = re.sub(r'\(.*?\)', '', ecole)
-            ecole = re.sub(r'-+', '-', ecole)
-            ecole = re.sub(r'\b(obtenus?|obtenues?|durant|la formation)\b', '', ecole, flags=re.IGNORECASE)
-            ecole = re.sub(r'\s{2,}', ' ', ecole).strip()
-
-        # Si aucune école détectée, spaCy essaie de l'extraire
-        if not ecole:
-            bloc_nlp = nlp(bloc)
-            for ent in bloc_nlp.ents:
-                if ent.label_ == 'ORG':
-                    ecole = ent.text.strip()
+        # Si pas trouvé, chercher mots-clés école dans la ligne
+        if ecole == "Inconnu":
+            for mot in mots_ecole:
+                if mot in ligne_lower:
+                    ecole = ligne.strip()
                     break
 
-        # Tentative d'extraction du diplôme
-        diplome = ''
-        for mot in mots_cles_education:
-            match = re.search(rf'\b({mot}[^\n,;]*)', bloc_lower)
-            if match:
-                diplome = match.group(1).strip()
-                break
+        # Extraction diplôme = ligne sans date ni école
+        diplome = ligne
+        if date != "Inconnu":
+            diplome = diplome.replace(date, "")
+        if ecole != "Inconnu" and ecole in diplome:
+            diplome = diplome.replace(ecole, "")
+        diplome = nettoyer_texte(diplome)
 
-        # Fallback : bloc complet - date - école
         if not diplome:
-            diplome = bloc
-            if date:
-                diplome = diplome.replace(date, '')
-            if ecole:
-                diplome = diplome.replace(ecole, '')
+            diplome = "Inconnu"
 
-        # Nettoyage du diplôme
-        diplome = re.sub(r'[:\-–•()]', '', diplome).strip()
-        diplome = re.sub(r'\s{2,}', ' ', diplome)
-
-        nb_infos = sum(bool(x and x.lower() != 'inconnu') for x in [date, ecole, diplome])
+        # On ajoute uniquement si au moins 2 infos sont valides
+        nb_infos = sum([date != "Inconnu", ecole != "Inconnu", diplome != "Inconnu"])
         if nb_infos >= 2:
             education.append({
-                "date": date or "Inconnu",
-                "ecole": ecole or "Inconnu",
-                "diplome": diplome or "Inconnu"
+                "date": date,
+                "ecole": ecole,
+                "diplome": diplome
             })
-            i += 3
-        else:
-            i += 1
 
     return education

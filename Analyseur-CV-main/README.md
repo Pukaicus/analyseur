@@ -1,59 +1,91 @@
-# Analyseur de CV
+README - Analyseur de CV en Python
 
-Bienvenue dans l'Analyseur de CV, un projet développé en Python utilisant Tkinter, spaCy, nltk, et d'autres bibliothèques pour extraire des informations pertinentes à partir de CV au format PDF.
+Description du projet
+Ce projet est un analyseur automatique de CV en PDF (texte non scanné) développé en Python. Il permet d’extraire plusieurs informations clés telles que :
 
-## Installation
+Identité (prénom, nom, email, téléphone)
 
-1. Clonez le dépôt GitHub :
+Compétences
 
-    ```bash
-    git clone https://github.com/OussamaLay/Analyseur-CV.git
-    ```
+Formations
 
-2. Accédez au répertoire du projet :
+Langues
 
-    ```bash
-    cd Analyseur-de-CV
-    ```
+Expériences professionnelles
 
-3. Installez les dépendances à l'aide de pip et du fichier requirements.txt :
+Les données extraites sont ensuite structurées dans un fichier XML. Un rapport d’analyse détaillé est aussi généré pour vérifier le contenu extrait.
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+L’outil inclut une interface graphique simple permettant de sélectionner un fichier CV ou un dossier entier.
 
-    Ceci installera toutes les librairies nécessaires.
+Prérequis
+Python 3.8 ou supérieur
 
-4. Téléchargez les modèles spaCy pré-entraînés pour le français :
+Librairies Python à installer :
+pip install -r requirements.txt
+pip install spacy lxml
+Modèle spaCy français (large) :
 
-    ```bash
-    python -m spacy download fr_core_news_lg
-    python -m spacy download en_core_web_sm
-    ```
+python -m spacy download fr_core_news_lg
+Fichiers de données externes (à placer dans le dossier Data)
+Le projet utilise plusieurs fichiers texte servant de base pour les extractions. Les chemins vers ces fichiers ont été modifiés dans le code selon votre organisation locale :
 
-    Assurez-vous d'avoir nltk installé et télécharger ces données avec la commande suivante :
+Fichier	Utilisation	Chemin dans le code
+education.txt	Mots-clés formations/diplômes	dans education.py
+prenoms.txt	Base des prénoms	dans prenom_nom.py
+noms.txt	Base des noms de famille	dans prenom_nom.py
+skills_db.txt	Base des compétences métiers	dans competences.py
 
-    ```bash
-    python nltk_data.py
-    ```
+Fonctionnement global
+Lancement
+Le script principal (par exemple index.py) lance une interface graphique (Tkinter).
 
-## Utilisation
+Sélection du fichier ou dossier
+L’utilisateur choisit soit un fichier PDF unique, soit un dossier contenant plusieurs CV.
 
-1. Exécutez le script principal :
+Analyse
+Le programme extrait ligne par ligne toutes les informations importantes avec spaCy, regex et mots-clés.
 
-    ```bash
-    python index.py
-    ```
+Rapport d’analyse
+Un fichier texte (ex: rapport_analyse_cv.txt) est généré, détaillant tout ce qui a été détecté, pour faciliter la vérification.
 
-2. Une fenêtre s'ouvrira, vous permettant de parcourir et analyser un fichier PDF de CV.
+Export XML
+Les données extraites sont enregistrées dans un fichier XML structuré dans un dossier output/ pour chaque CV analysé.
 
-3. Suivez les instructions pour afficher les informations extraites telles que le nom, l'éducation, le numéro de téléphone, l'email et les compétences.
+Notes importantes
+Les fichiers de données (education.txt, prenoms.txt, etc.) doivent être à jour et correctement placés pour assurer la bonne reconnaissance.
 
-## Remarques
+Le projet est conçu pour des PDF contenant du texte « sélectionnable » (non scanné).
 
-Assurez-vous d'avoir correctement configuré votre environnement Python et les modèles nécessaires avant d'exécuter le script.
+L’analyse est effectuée principalement ligne par ligne et en blocs de 2 ou 3 lignes pour détecter les formations, expériences, etc.
 
-L'affichage des informations peut prendre quelques secondes en raison du traitement.
+Certains faux positifs peuvent apparaître ; le rapport d’analyse permet de détecter ces cas et d’ajuster les listes ou règles.
 
----
+Organisation du projet
+Analyseur-CV/
+├── Data/
+│   ├── education.txt
+│   ├── prenoms.txt
+│   ├── noms.txt
+│   └── skills_db.txt
+├── extraction/
+│   ├── education.py
+│   ├── prenom_nom.py
+│   ├── competences.py
+│   ├── experiences.py
+│   └── langues.py
+├── output/
+│   └── (fichiers XML générés)
+├── index.py
+├── rapport_analyse_cv.txt
+└── README.md
+Personnalisation
+Les chemins vers les fichiers education.txt, prenoms.txt, noms.txt, skills_db.txt sont modifiables directement dans leurs fichiers .py respectifs (variables en début de fichier).
 
+Les listes de mots-clés, mots interdits, et regex peuvent être ajustées dans les scripts pour améliorer la reconnaissance selon vos besoins.
+
+Comment lancer le programme
+python index.py
+Une fenêtre s’ouvre pour sélectionner le CV ou dossier, puis l’analyse se lance automatiquement.
+
+Contact / Support
+Pour toute question ou problème, merci de me contacter ou d’ouvrir une issue sur le dépôt GitHub.
